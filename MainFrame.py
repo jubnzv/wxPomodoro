@@ -27,8 +27,10 @@ OR OTHER DEALINGS IN THE SOFTWARE.
 import wx
 import datetime
 import time
+from collections import deque
 
 from TaskBarIcon import TimerTaskBarIcon
+from Timer import PomodoroTimer
 
 
 class MainFrame(wx.Frame):
@@ -40,13 +42,12 @@ class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(MainFrame, self).__init__(*args, **kwargs)
 
-        # Timer values
-        self.STATUS = 'Stopped'
-        self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
-
-        # Initialize the timer
-        self.timer = wx.Timer(self, wx.ID_ANY)
-        self.Bind(wx.EVT_TIMER, self.TimerLoop)
+        self.timer = None  # Current timer
+        self.timers_queue = deque()
+        self.timers_count = 0
+        self.p_dur = 0
+        self.sb_dur = 0
+        self.lb_dur = 0
 
         # Intiailize the UI
         self.mainPanel = wx.Panel(self)
@@ -65,12 +66,10 @@ class MainFrame(wx.Frame):
         statusSz = wx.StaticBoxSizer(statusPanel, wx.HORIZONTAL)
 
         self.currentTime = wx.TextCtrl(statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
-        # self.currentTime.SetValue('00:00:00')
         self._setCurrentTime()  # Set default zeroed value
         statusSz.Add(self.currentTime, flag=wx.EXPAND|wx.ALL, border=3)
 
         self.currentStatus = wx.TextCtrl(statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
-        # self.currentStatus.SetValue('Stopped')
         self._setCurrentStatus()
         statusSz.Add(self.currentStatus, flag=wx.EXPAND|wx.ALL, border=3)
 
@@ -148,13 +147,41 @@ class MainFrame(wx.Frame):
         """Initialize the tray notification icon"""
         self.icon = TimerTaskBarIcon(self)
 
+    def queue_init(self):
+        """Setup the PomodoroTimer queue
+
+        Timers queue used to implement full pomodoro stack: from start to long break.
+        """
+        # Add all pomodoros and short breaks
+        for i in range(self.timers_count):
+            self.timers_queue.append(PomodoroTimer(dur=self.p_dur, parent=self, id=wx.ID_ANY))
+            self.timers_queue.append(PomodoroTimer(dur=self.sb_dur, parent=self, id=wx.ID_ANY))
+
+        # Add long break
+        self.timers_queue.append(PomodoroTimer(dur=self.lb_dur, parent=self, id=wx.ID_ANY))
+
+    def queue_clean(self):
+        """Remove all timers from queue"""
+        self.timers_qeueue = deque(e)
+        self.timer = None
+        self.timer_status = None
+
+    def queue_next(self):
+        """Runs next timer from queue"""
+        self.timer = self.timers_queue[0]
+        self.timer_status = self.timer.get_status()
+        self.Bind(wx.EVT_TIMER, self.TimerLoop)
+
+        self.timers_queue.pop()
+
     def Refresh(self):
         """Update panel contents"""
-        if self.STATUS == 'Running':
+        status = self.timer.get_status()
+        if status == 'Running':
             self.startBut.Disable()
             self.pauseBut.Enable()
             self.stopBut.Enable()
-        elif self.STATUS == 'Paused':
+        elif status == 'Paused':
             self.startBut.Enable()
             self.pauseBut.Disable()
             self.stopBut.Enable()
@@ -179,20 +206,27 @@ class MainFrame(wx.Frame):
 
     def _setCurrentStatus(self):
         """Set current status in UI"""
-        self.currentStatus.SetValue(self.STATUS)
+        if self.timer:
+            self.timer_status = self.timer.get_status()
+        else:
+            self.timer_status = ''
+        self.currentStatus.SetValue(self.timer_status)
 
     def _setCurrentTime(self):
         """Sets actual timer value to currentTime element"""
-        remain = self.format_timedelta(self.t_remain)
+        if self.timer:
+            remain = self.format_timedelta(self.timer.get_remain())
+        else:
+            remain = '00:00:00'
         self.currentTime.SetValue(remain)
 
     def _setTitle(self):
         """Change frame's title according timer current status"""
-        if self.STATUS in ('Running', 'Paused'):
-            remain = self.format_timedelta(self.t_remain)
-            title = ' '.join(['wxPomodoro:', self.STATUS.lower(), remain, 'left'])
+        if self.timer_status in ('Running', 'Paused'):
+            remain = self.format_timedelta(self.timer.get_remain())
+            title = ' '.join(['wxPomodoro:', self.timer_status.lower(), remain, 'left'])
         else:  # Stopped
-            title = 'wxPomodoro: ' + self.STATUS.lower()
+            title = 'wxPomodoro: ' + self.timer_status.lower()
 
         self.SetTitle(title)
 
@@ -211,38 +245,24 @@ class MainFrame(wx.Frame):
         self.p_dur = get_secs(self.pDurationVal, self.pDurationUnit)
         self.sb_dur = get_secs(self.sbDurationVal, self.sbDurationUnit)
         self.lb_dur = get_secs(self.lbDurationVal, self.lbDurationUnit)
+        self.timers_count = self.cntVal.GetValue()
 
     def TimerLoop(self, event):
-        self.t_remain = self.t_remain - (datetime.datetime.now() - self.t_tick)
-        self.t_tick = datetime.datetime.now()
-
-        if self.t_remain.total_seconds() <= 0:  # Finish current cycle
-            self.timer.Stop()
-            self.STATUS = 'Stopped'
-
         wx.CallAfter(self.Refresh)
 
     def OnStart(self, event):
         self._getUserInput()
-        if self.STATUS == 'Stopped' or not self.t_start:
-            self.t_start = datetime.datetime.now()
-            self.t_tick = self.t_start
-            self.t_stop = self.t_start + datetime.timedelta(seconds=self.p_dur)
-            self.t_remain = self.t_stop - self.t_start
-        else:  # Continue after pause
-            pass
-        self.timer.Start(1000)
-        self.STATUS = 'Running'
+        self.queue_init()
+        self.queue_next()
+        self.timer.start()
         wx.CallAfter(self.Refresh)
 
     def OnPause(self, event):
-        self.timer.Stop()
-        self.STATUS = 'Paused'
+        self.timer.pause()
         wx.CallAfter(self.Refresh)
 
     def OnStop(self, event):
-        self.timer.Stop()
-        self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
-        self.STATUS = 'Stopped'
+        self.timer.stop()
+        self.queue_clean()
         wx.CallAfter(self.Refresh)
 
