@@ -162,7 +162,7 @@ class MainFrame(wx.Frame):
 
     def queue_clean(self):
         """Remove all timers from queue"""
-        self.timers_qeueue = deque(e)
+        self.timers_qeueue = deque()
         self.timer = None
         self.timer_status = None
 
@@ -176,12 +176,13 @@ class MainFrame(wx.Frame):
 
     def Refresh(self):
         """Update panel contents"""
-        status = self.timer.get_status()
-        if status == 'Running':
+        self._setCurrentStatus()
+
+        if self.timer_status == 'Running':
             self.startBut.Disable()
             self.pauseBut.Enable()
             self.stopBut.Enable()
-        elif status == 'Paused':
+        elif self.timer_status == 'Paused':
             self.startBut.Enable()
             self.pauseBut.Disable()
             self.stopBut.Enable()
@@ -192,7 +193,6 @@ class MainFrame(wx.Frame):
 
 
         self._setCurrentTime()
-        self._setCurrentStatus()
         self._setTitle()
 
     def format_timedelta(self, td):
@@ -209,7 +209,7 @@ class MainFrame(wx.Frame):
         if self.timer:
             self.timer_status = self.timer.get_status()
         else:
-            self.timer_status = ''
+            self.timer_status = 'Stopped'
         self.currentStatus.SetValue(self.timer_status)
 
     def _setCurrentTime(self):

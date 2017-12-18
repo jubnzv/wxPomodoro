@@ -68,12 +68,14 @@ class PomodoroTimer(wx.Timer):
 
     def stop(self):
         """Breaks existing timing data and stops the timer"""
-        self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
         self.Stop()
+        self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
+        self.status = self.TIMER_STATUS[0]
 
     def pause(self):
         """Pause the timer"""
         self.Stop()
+        self.status = self.TIMER_STATUS[2]
 
     def get_remain(self):
         """Returns remain time in timedelta"""
