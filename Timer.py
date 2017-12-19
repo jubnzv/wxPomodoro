@@ -33,10 +33,11 @@ class PomodoroTimer(wx.Timer):
     """Timer that includes desktop notifications on expire
     """
 
+    # Timer status with UI name representation
     TIMER_STATUS = {'T_STOP': 'Stopped',
                     'T_RUN': 'Running',
                     'T_PAUSE': 'Paused',
-                    'T_FINISH': 'Finished'}
+                    'T_FINISH': 'Stopped'}
     TIMER_TICK = 1000  # Default tick interval == 1 second
 
     def __init__(self, dur, parent, id):
@@ -54,9 +55,7 @@ class PomodoroTimer(wx.Timer):
         self.t_remain = self.t_remain - (datetime.datetime.now() - self.t_tick)
         self.t_tick = datetime.datetime.now()
         if self.t_remain.total_seconds() <= 0:  # Finish current cycle
-            # TODO: Generate event in parent
-            self.frame.queue_next()
-            self.stop()
+            self.finish()
 
         super(PomodoroTimer, self).Notify()
 
@@ -82,6 +81,12 @@ class PomodoroTimer(wx.Timer):
         """Pause the timer"""
         self.Stop()
         self.status = self.TIMER_STATUS['T_PAUSE']
+
+    def finish(self):
+        """Represent 'Finish' state: timer expires successfully"""
+        self.Stop()
+        self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
+        self.status = self.TIMER_STATUS['T_FINISH']
 
     def get_remain(self):
         """Returns remain time in timedelta"""

@@ -167,8 +167,9 @@ class MainFrame(wx.Frame):
         self.timer_status = None
 
     def queue_next(self):
-        """Runs next timer from queue"""
+        """Starts thenext timer from queue"""
         self.timer = self.timers_queue[0]
+        self.timer.start()
         self.timer_status = self.timer.get_status()
         self.Bind(wx.EVT_TIMER, self.TimerLoop)
 
@@ -186,11 +187,10 @@ class MainFrame(wx.Frame):
             self.startBut.Enable()
             self.pauseBut.Disable()
             self.stopBut.Enable()
-        else:  # Stopped
+        else:  # Stopped or finished
             self.startBut.Enable()
             self.pauseBut.Disable()
             self.stopBut.Disable()
-
 
         self._setCurrentTime()
         self._setTitle()
@@ -206,9 +206,7 @@ class MainFrame(wx.Frame):
 
     def _setCurrentStatus(self):
         """Set current status in UI"""
-        if self.timer:
-            self.timer_status = self.timer.get_status()
-        else:
+        if not self.timer:
             self.timer_status = PomodoroTimer.TIMER_STATUS['T_STOP']
         self.currentStatus.SetValue(self.timer_status)
 
@@ -225,7 +223,7 @@ class MainFrame(wx.Frame):
         if self.timer_status in (PomodoroTimer.TIMER_STATUS['T_RUN'], PomodoroTimer.TIMER_STATUS['T_RUN']):
             remain = self.format_timedelta(self.timer.get_remain())
             title = ' '.join(['wxPomodoro:', self.timer_status.lower(), remain, 'left'])
-        else:  # Stopped
+        else:  # Stopped or finished
             title = 'wxPomodoro: ' + self.timer_status.lower()
 
         self.SetTitle(title)
@@ -248,6 +246,9 @@ class MainFrame(wx.Frame):
         self.timers_count = self.cntVal.GetValue()
 
     def TimerLoop(self, event):
+        self.timer_status = self.timer.get_status()
+        if self.timer_status == PomodoroTimer.TIMER_STATUS['T_FINISH'] and self.timers_queue:
+            self.queue_next()
         wx.CallAfter(self.Refresh)
 
     def OnStart(self, event):
