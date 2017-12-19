@@ -31,6 +31,7 @@ from collections import deque
 
 from TaskBarIcon import TimerTaskBarIcon
 from Timer import PomodoroTimer
+from Notify import PomodoroNotify
 
 
 class MainFrame(wx.Frame):
@@ -42,6 +43,7 @@ class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(MainFrame, self).__init__(*args, **kwargs)
 
+        self.notify = PomodoroNotify()
         self.timer = None  # Current timer
         self.timers_queue = deque()
         self.timers_count = 0
@@ -177,8 +179,8 @@ class MainFrame(wx.Frame):
         self.timer.start()
         self.timer_status = self.timer.get_status()
         self.Bind(wx.EVT_TIMER, self.TimerLoop)
-
         self.timers_queue.popleft()
+        self.notify.show_status(self.current_task)
 
     def Refresh(self):
         """Update panel contents"""
@@ -270,10 +272,12 @@ class MainFrame(wx.Frame):
 
     def OnPause(self, event):
         self.timer.pause()
+        self.notify.show_action('Paused')
         wx.CallAfter(self.Refresh)
 
     def OnStop(self, event):
         self.timer.stop()
         self.queue_clean()
+        self.notify.show_action('Stopped')
         wx.CallAfter(self.Refresh)
 
