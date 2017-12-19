@@ -48,6 +48,8 @@ class MainFrame(wx.Frame):
         self.p_dur = 0
         self.sb_dur = 0
         self.lb_dur = 0
+        self.timer_status = None
+        self.current_task = 'Waiting'
 
         # Intiailize the UI
         self.mainPanel = wx.Panel(self)
@@ -72,6 +74,10 @@ class MainFrame(wx.Frame):
         self.currentStatus = wx.TextCtrl(statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
         self._setCurrentStatus()
         statusSz.Add(self.currentStatus, flag=wx.EXPAND|wx.ALL, border=3)
+
+        self.currentTask = wx.TextCtrl(statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
+        self._setCurrentTask()
+        statusSz.Add(self.currentTask, flag=wx.EXPAND|wx.ALL, border=3)
 
         self.mainSz.Add(statusSz, flag=wx.ALL|wx.EXPAND, border=10)
 
@@ -152,13 +158,11 @@ class MainFrame(wx.Frame):
 
         Timers queue used to implement full pomodoro stack: from start to long break.
         """
-        # Add all pomodoros and short breaks
+        self.timers_queue = deque()
         for i in range(self.timers_count):
-            self.timers_queue.append(PomodoroTimer(dur=self.p_dur, parent=self, id=wx.ID_ANY))
-            self.timers_queue.append(PomodoroTimer(dur=self.sb_dur, parent=self, id=wx.ID_ANY))
-
-        # Add long break
-        self.timers_queue.append(PomodoroTimer(dur=self.lb_dur, parent=self, id=wx.ID_ANY))
+            self.timers_queue.append(('Pomodoro', PomodoroTimer(dur=self.p_dur, parent=self, id=wx.ID_ANY)))
+            self.timers_queue.append(('Short break', PomodoroTimer(dur=self.sb_dur, parent=self, id=wx.ID_ANY)))
+        self.timers_queue[-1] = (('Long break', PomodoroTimer(dur=self.lb_dur, parent=self, id=wx.ID_ANY)))
 
     def queue_clean(self):
         """Remove all timers from queue"""
@@ -167,8 +171,9 @@ class MainFrame(wx.Frame):
         self.timer_status = None
 
     def queue_next(self):
-        """Starts thenext timer from queue"""
-        self.timer = self.timers_queue[0]
+        """Starts the next timer from queue"""
+        self.current_task = self.timers_queue[0][0]  # Type of current timer
+        self.timer = self.timers_queue[0][1]  # Timer object
         self.timer.start()
         self.timer_status = self.timer.get_status()
         self.Bind(wx.EVT_TIMER, self.TimerLoop)
@@ -178,6 +183,7 @@ class MainFrame(wx.Frame):
     def Refresh(self):
         """Update panel contents"""
         self._setCurrentStatus()
+        self._setCurrentTask()
 
         if self.timer_status == PomodoroTimer.TIMER_STATUS['T_RUN']:
             self.startBut.Disable()
@@ -209,6 +215,10 @@ class MainFrame(wx.Frame):
         if not self.timer:
             self.timer_status = PomodoroTimer.TIMER_STATUS['T_STOP']
         self.currentStatus.SetValue(self.timer_status)
+
+    def _setCurrentTask(self):
+        """Set current task type (work / short break / long break) in UI"""
+        self.currentTask.SetValue(self.current_task)
 
     def _setCurrentTime(self):
         """Sets actual timer value to currentTime element"""
