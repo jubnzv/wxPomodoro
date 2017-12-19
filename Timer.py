@@ -33,7 +33,10 @@ class PomodoroTimer(wx.Timer):
     """Timer that includes desktop notifications on expire
     """
 
-    TIMER_STATUS = {0: 'Stopped', 1: 'Running', 2: 'Paused'}
+    TIMER_STATUS = {'T_STOP': 'Stopped',
+                    'T_RUN': 'Running',
+                    'T_PAUSE': 'Paused',
+                    'T_FINISH': 'Finished'}
     TIMER_TICK = 1000  # Default tick interval == 1 second
 
     def __init__(self, dur, parent, id):
@@ -42,40 +45,43 @@ class PomodoroTimer(wx.Timer):
         """
         super(PomodoroTimer, self).__init__(parent, id)
 
+        self.frame = parent
         self.dur = dur
         self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
-        self.status = self.TIMER_STATUS[0]
+        self.status = self.TIMER_STATUS['T_STOP']
 
     def Notify(self):
         self.t_remain = self.t_remain - (datetime.datetime.now() - self.t_tick)
         self.t_tick = datetime.datetime.now()
         if self.t_remain.total_seconds() <= 0:  # Finish current cycle
-            self.timer.Stop()
+            # TODO: Generate event in parent
+            self.frame.queue_next()
+            self.stop()
 
         super(PomodoroTimer, self).Notify()
 
     def start(self):
         """Runs the timer"""
-        if self.status == self.TIMER_STATUS[0]:
+        if self.status == self.TIMER_STATUS['T_STOP']:
             self.t_start = datetime.datetime.now()
             self.t_tick = self.t_start
             self.t_stop = self.t_start + datetime.timedelta(seconds=self.dur)
             self.t_remain = self.t_stop - self.t_start
         else:  # Timer already has been installed and was paused
             pass
-        self.status = self.TIMER_STATUS[1]
+        self.status = self.TIMER_STATUS['T_RUN']
         self.Start(self.TIMER_TICK)
 
     def stop(self):
         """Breaks existing timing data and stops the timer"""
         self.Stop()
         self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
-        self.status = self.TIMER_STATUS[0]
+        self.status = self.TIMER_STATUS['T_STOP']
 
     def pause(self):
         """Pause the timer"""
         self.Stop()
-        self.status = self.TIMER_STATUS[2]
+        self.status = self.TIMER_STATUS['T_PAUSE']
 
     def get_remain(self):
         """Returns remain time in timedelta"""

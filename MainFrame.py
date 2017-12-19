@@ -172,17 +172,17 @@ class MainFrame(wx.Frame):
         self.timer_status = self.timer.get_status()
         self.Bind(wx.EVT_TIMER, self.TimerLoop)
 
-        self.timers_queue.pop()
+        self.timers_queue.popleft()
 
     def Refresh(self):
         """Update panel contents"""
         self._setCurrentStatus()
 
-        if self.timer_status == 'Running':
+        if self.timer_status == PomodoroTimer.TIMER_STATUS['T_RUN']:
             self.startBut.Disable()
             self.pauseBut.Enable()
             self.stopBut.Enable()
-        elif self.timer_status == 'Paused':
+        elif self.timer_status == PomodoroTimer.TIMER_STATUS['T_PAUSE']:
             self.startBut.Enable()
             self.pauseBut.Disable()
             self.stopBut.Enable()
@@ -209,7 +209,7 @@ class MainFrame(wx.Frame):
         if self.timer:
             self.timer_status = self.timer.get_status()
         else:
-            self.timer_status = 'Stopped'
+            self.timer_status = PomodoroTimer.TIMER_STATUS['T_STOP']
         self.currentStatus.SetValue(self.timer_status)
 
     def _setCurrentTime(self):
@@ -222,7 +222,7 @@ class MainFrame(wx.Frame):
 
     def _setTitle(self):
         """Change frame's title according timer current status"""
-        if self.timer_status in ('Running', 'Paused'):
+        if self.timer_status in (PomodoroTimer.TIMER_STATUS['T_RUN'], PomodoroTimer.TIMER_STATUS['T_RUN']):
             remain = self.format_timedelta(self.timer.get_remain())
             title = ' '.join(['wxPomodoro:', self.timer_status.lower(), remain, 'left'])
         else:  # Stopped
