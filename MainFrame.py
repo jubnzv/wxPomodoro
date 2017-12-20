@@ -40,19 +40,16 @@ class MainFrame(wx.Frame):
 
     TIME_UNITS = ['sec', 'min', 'hour']
 
-    def __init__(self, app_name, config_path, show_icon, show_notify,
-                 *args, **kwargs):
+    def __init__(self, app_name, cl_args, *args, **kwargs):
         """
         :param app_name: Application name to show
-        :param config_path: Path to configuration file
-        :param show_icon: Show tray icon
-        :param show_notify: Show desktop notifications
+        :param cl_args: Dict that contents user-defined application options
         """
         super(MainFrame, self).__init__(*args, **kwargs)
 
         self.app_name = app_name
 
-        self.notify = PomodoroNotify()
+        self.notify_controller = None  # Notications controller
         self.timer = None  # Current timer
         self.timers_queue = deque()
         self.timers_count = 0
@@ -68,7 +65,9 @@ class MainFrame(wx.Frame):
         self._initStatusPanel()
         self._initTimerPanel()
         self._initControlButtons()
-        if show_icon:
+        if cl_args['show_notify']:
+            self._initNotify()
+        if cl_args['show_icon']:
             self._initTrayIcon()
         self._setTitle()
         self.mainSz.Fit(self)
@@ -165,6 +164,10 @@ class MainFrame(wx.Frame):
         """Initialize the tray notification icon"""
         self.icon = TimerTaskBarIcon(self)
 
+    def _initNotify(self):
+        """Initialize notifications"""
+        self.notify_controller = PomodoroNotify()
+
     def queue_init(self):
         """Setup the PomodoroTimer queue
 
@@ -190,7 +193,8 @@ class MainFrame(wx.Frame):
         self.timer_status = self.timer.get_status()
         self.Bind(wx.EVT_TIMER, self.TimerLoop)
         self.timers_queue.popleft()
-        self.notify.show_status(self.current_task)
+        if self.notify_controller:
+            self.notify_controller.show_status(self.current_task)
 
     def Refresh(self):
         """Update panel contents"""
@@ -282,12 +286,14 @@ class MainFrame(wx.Frame):
 
     def OnPause(self, event):
         self.timer.pause()
-        self.notify.show_action('Paused')
+        if self.notify_controller:
+            self.notify_controller.show_action('Paused')
         wx.CallAfter(self.Refresh)
 
     def OnStop(self, event):
         self.timer.stop()
         self.queue_clean()
-        self.notify.show_action('Stopped')
+        if self.notify_controller:
+            self.notify_controller.show_action('Stopped')
         wx.CallAfter(self.Refresh)
 

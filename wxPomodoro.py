@@ -42,23 +42,24 @@ def get_args():
     parser.add_argument('-v', '--version', action='version',
                         version=APP_VERSION)
 
-    results = parser.parse_args()
-    return results.config_path, results.show_icon, results.show_notify
+    args = parser.parse_args()
+    return vars(args)
 
-def start_app(config_path, show_icon, show_notify):
-    """Execute GUI application"""
+def start_app(cl_args):
+    """Execute GUI application
+
+    :param cl_args: Dict with command-line arguments
+    """
     import wx
     from MainFrame import MainFrame
 
     app = wx.App()
-    frame = MainFrame(parent=None, app_name=' '.join((APP_NAME, APP_VERSION)),
-                      config_path=config_path,
-                      show_icon=show_icon, show_notify=show_notify)
+    frame = MainFrame(parent=None, app_name=' '.join((APP_NAME, APP_VERSION)), cl_args=cl_args)
     frame.Show()
     app.MainLoop()
 
 
 if __name__ == '__main__':
-    config_path, show_icon, show_notify = get_args()
-    start_app(config_path, show_icon, show_notify)
+    args = get_args()
+    start_app(cl_args=args)
 
