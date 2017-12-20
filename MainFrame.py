@@ -40,8 +40,17 @@ class MainFrame(wx.Frame):
 
     TIME_UNITS = ['sec', 'min', 'hour']
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, app_name, config_path, show_icon, show_notify,
+                 *args, **kwargs):
+        """
+        :param app_name: Application name to show
+        :param config_path: Path to configuration file
+        :param show_icon: Show tray icon
+        :param show_notify: Show desktop notifications
+        """
         super(MainFrame, self).__init__(*args, **kwargs)
+
+        self.app_name = app_name
 
         self.notify = PomodoroNotify()
         self.timer = None  # Current timer
@@ -59,7 +68,8 @@ class MainFrame(wx.Frame):
         self._initStatusPanel()
         self._initTimerPanel()
         self._initControlButtons()
-        self._initTrayIcon()
+        if show_icon:
+            self._initTrayIcon()
         self._setTitle()
         self.mainSz.Fit(self)
         self.mainPanel.SetSizer(self.mainSz)
@@ -234,9 +244,9 @@ class MainFrame(wx.Frame):
         """Change frame's title according timer current status"""
         if self.timer_status in (PomodoroTimer.TIMER_STATUS['T_RUN'], PomodoroTimer.TIMER_STATUS['T_RUN']):
             remain = self.format_timedelta(self.timer.get_remain())
-            title = ' '.join(['wxPomodoro:', self.timer_status.lower(), remain, 'left'])
+            title = ' '.join([self.app_name, self.timer_status.lower(), remain, 'left'])
         else:  # Stopped or finished
-            title = 'wxPomodoro: ' + self.timer_status.lower()
+            title = self.app_name+ ' ' + self.timer_status.lower()
 
         self.SetTitle(title)
 

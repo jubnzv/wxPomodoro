@@ -24,17 +24,41 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
 OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-def start():
-    """Process command line options and execute the application"""
+import argparse
+
+APP_VERSION = '0.1'
+APP_NAME = 'wxPomodoro'
+
+def get_args():
+    """Parse and returns command line arguments"""
+    parser = argparse.ArgumentParser(description=APP_NAME+': Simple pomodoro timer')
+
+    parser.add_argument('--no-icon', action='store_false',
+                        dest='show_icon', help='disable tray icon')
+    parser.add_argument('--no-notify', action='store_false',
+                        dest='show_notify', help='mute desktop notifications')
+    parser.add_argument('-c', '--config', action='store',
+                        dest='config_path', help='configuration file location')
+    parser.add_argument('-v', '--version', action='version',
+                        version=APP_VERSION)
+
+    results = parser.parse_args()
+    return results.config_path, results.show_icon, results.show_notify
+
+def start_app(config_path, show_icon, show_notify):
+    """Execute GUI application"""
     import wx
     from MainFrame import MainFrame
 
     app = wx.App()
-    frame = MainFrame(None, title='wxPomodoro')
+    frame = MainFrame(parent=None, app_name=' '.join((APP_NAME, APP_VERSION)),
+                      config_path=config_path,
+                      show_icon=show_icon, show_notify=show_notify)
     frame.Show()
     app.MainLoop()
 
 
 if __name__ == '__main__':
-    start()
+    config_path, show_icon, show_notify = get_args()
+    start_app(config_path, show_icon, show_notify)
 
