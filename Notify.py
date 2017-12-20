@@ -32,18 +32,22 @@ from pgi.repository import Notify
 class PomodoroNotify:
     """Notification wrapper
     """
-    def __init__(self):
-        Notify.init('wxPomodoro')
+    def __init__(self, app_name):
+        self.app_name = app_name
+        Notify.init(app_name)
+
+    def _show_notify(self, text='', urg=0):
+        """Shows notification via libnotify"""
+        status = Notify.Notification.new(self.app_name, text, 'dialog-information')
+        status.set_urgency(urg)
+        status.show()
 
     def show_status(self, status):
         """Shows current status"""
-        status = Notify.Notification.new(status, '', 'dialog-information')
-        status.set_urgency(1)
-        status.show()
+        status = ' '.join(['Current stage:', status])
+        self._show_notify(text=status)
 
     def show_action(self, action):
         """Shows current action e.g. pause, stop, run"""
-        action = Notify.Notification.new(action, '', 'dialog-information')
-        action.set_urgency(0)
-        action.show()
+        self._show_notify(text=action, urg=1)
 

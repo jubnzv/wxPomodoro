@@ -54,7 +54,7 @@ def start_app(cl_args):
     from MainFrame import MainFrame
 
     app = wx.App()
-    frame = MainFrame(parent=None, app_name=' '.join((APP_NAME, APP_VERSION)), cl_args=cl_args)
+    frame = MainFrame(parent=None, app_creds=(APP_NAME, APP_VERSION), cl_args=cl_args)
     frame.Show()
     app.MainLoop()
 

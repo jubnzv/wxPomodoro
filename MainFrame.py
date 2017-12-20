@@ -40,14 +40,15 @@ class MainFrame(wx.Frame):
 
     TIME_UNITS = ['sec', 'min', 'hour']
 
-    def __init__(self, app_name, cl_args, *args, **kwargs):
+    def __init__(self, app_creds, cl_args, *args, **kwargs):
         """
-        :param app_name: Application name to show
+        :param app_creds: Tuple with application name and version values
+        :type app_creds: tuple
         :param cl_args: Dict that contents user-defined application options
         """
         super(MainFrame, self).__init__(*args, **kwargs)
 
-        self.app_name = app_name
+        self.app_name, self.app_version = app_creds
 
         self.notify_controller = None  # Notications controller
         self.timer = None  # Current timer
@@ -166,7 +167,7 @@ class MainFrame(wx.Frame):
 
     def _initNotify(self):
         """Initialize notifications"""
-        self.notify_controller = PomodoroNotify()
+        self.notify_controller = PomodoroNotify(app_name=self.app_name)
 
     def queue_init(self):
         """Setup the PomodoroTimer queue
@@ -282,6 +283,8 @@ class MainFrame(wx.Frame):
         self.queue_init()
         self.queue_next()
         self.timer.start()
+        if self.notify_controller:
+            self.notify_controller.show_action('Started!')
         wx.CallAfter(self.Refresh)
 
     def OnPause(self, event):
