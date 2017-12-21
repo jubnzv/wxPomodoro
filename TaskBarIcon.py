@@ -41,9 +41,16 @@ class TimerTaskBarIcon(wx.adv.TaskBarIcon):
 
         icon = wx.Icon('./icon.xpm')
         self.SetIcon(icon, "Test")
-        # self.Bind(wx.EVT_TASKBAR_LEFT_DOWN, self.on_left_down)
+        self.Bind(wx.adv.EVT_TASKBAR_LEFT_DOWN, self.OnTaskBarLeftClick)
 
-    def on_left_down(self, event):
-        print("foo")
+    def OnTaskBarLeftClick(self, event):
+        """Create right-click menu"""
+        self.frame.Show()
+        self.frame.Restore()
 
+    def OnTaskBarClose(self, event):
+        """Destroy parent frame and taskbar itself"""
+        self.frame.Close()
 
+    def OnTaskBarActivate(self, event):
+        pass

@@ -162,8 +162,11 @@ class MainFrame(wx.Frame):
         self.mainSz.Add(btnSz, flag=wx.ALIGN_RIGHT|wx.EXPAND, border=10)
 
     def _initTrayIcon(self):
-        """Initialize the tray notification icon"""
-        self.icon = TimerTaskBarIcon(self)
+        """Initialize tray icon and minimize-restore routines"""
+        self.tbIcon = TimerTaskBarIcon(self)
+
+        self.Bind(wx.EVT_ICONIZE, self.OnMinimize)
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def _initNotify(self):
         """Initialize notifications"""
@@ -300,3 +303,12 @@ class MainFrame(wx.Frame):
             self.notify_controller.show_action('Stopped')
         wx.CallAfter(self.Refresh)
 
+    def OnMinimize(self, event):
+        """Minimize to tray"""
+        if self.IsIconized():
+            self.Hide()
+
+    def OnClose(self, event):
+        self.tbIcon.RemoveIcon()
+        self.tbIcon.Destroy()
+        self.Destroy()
