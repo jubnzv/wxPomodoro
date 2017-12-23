@@ -34,6 +34,21 @@ from Timer import PomodoroTimer
 from Notify import PomodoroNotify
 
 
+class StatusTextCtrl(wx.TextCtrl):
+    """Custom TextCtrl using to represent status on a timer panel"""
+
+    def __init__(self, *args, **kwargs):
+        super(StatusTextCtrl, self).__init__(*args, **kwargs)
+        parent = args[0]
+        self.SetBackgroundColour(parent.GetBackgroundColour())
+        self.SetEditable(False)
+        self.Bind(wx.EVT_SET_FOCUS, self.OnFocus)
+
+    def OnFocus(self, event):
+        """Disable focus event"""
+        self.Navigate()
+
+
 class MainFrame(wx.Frame):
     """Main frame of program
     """
@@ -83,29 +98,35 @@ class MainFrame(wx.Frame):
         self.mainSz.Fit(self)
         self.mainPanel.SetSizer(self.mainSz)
 
+        self.Refresh()
+
     def _initStatusPanel(self):
         """Initialize the status panel that represents current pomodoro state"""
-        statusPanel = wx.StaticBox(self.mainPanel, wx.ID_ANY, label='Current pomodoro')
-        statusSz = wx.StaticBoxSizer(statusPanel, wx.HORIZONTAL)
+        self.statusPanel = wx.StaticBox(self.mainPanel, wx.ID_ANY, label='Current status')
+        statusSz = wx.StaticBoxSizer(self.statusPanel)
+        statusElsSz = wx.GridBagSizer(vgap=5, hgap=5)
 
-        self.currentTime = wx.TextCtrl(statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
+        self.currentTime = StatusTextCtrl(self.statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
         self._setCurrentTime()  # Set default zeroed value
-        statusSz.Add(self.currentTime, flag=wx.EXPAND|wx.ALL, border=3)
+        statusElsSz.Add(self.currentTime, pos=(0,0), flag=wx.EXPAND|wx.ALL, border=3)
 
-        self.currentStatus = wx.TextCtrl(statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
+        self.currentStatus = StatusTextCtrl(self.statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
         self._setCurrentStatus()
-        statusSz.Add(self.currentStatus, flag=wx.EXPAND|wx.ALL, border=3)
+        statusElsSz.Add(self.currentStatus, pos=(0,2), flag=wx.EXPAND|wx.ALL, border=3)
 
-        self.currentTask = wx.TextCtrl(statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
+        self.currentTask = StatusTextCtrl(self.statusPanel, wx.ID_ANY, style=wx.TE_READONLY)
         self._setCurrentTask()
-        statusSz.Add(self.currentTask, flag=wx.EXPAND|wx.ALL, border=3)
+        statusElsSz.Add(self.currentTask, pos=(0,3), flag=wx.EXPAND|wx.ALL, border=3)
 
+        statusElsSz.AddGrowableCol(1)
+        statusElsSz.AddGrowableRow(0)
+        statusSz.Add(statusElsSz, proportion=1, flag=wx.ALL|wx.EXPAND)
         self.mainSz.Add(statusSz, flag=wx.ALL|wx.EXPAND, border=10)
 
     def _initTimerPanel(self):
         """Initialize the timer panel"""
         timerPanel = wx.StaticBox(self.mainPanel, wx.ID_ANY, label='Timer options')
-        timerSz = wx.StaticBoxSizer(timerPanel, wx.HORIZONTAL)
+        timerSz = wx.StaticBoxSizer(timerPanel)
         timerOptSz = wx.FlexGridSizer(rows=4, cols=3, vgap=10, hgap=8)
 
         # Pomodoro duration
@@ -218,6 +239,12 @@ class MainFrame(wx.Frame):
         self._setCurrentStatus()
         self._setCurrentTask()
 
+        # Update timer status color
+        if self.timer_status == PomodoroTimer.TIMER_STATUS['T_RUN']:
+            self.currentTime.SetBackgroundColour((255, 255, 255))
+        else:
+            self.currentTime.SetBackgroundColour(self.statusPanel.GetBackgroundColour())
+
         # Update app icon
         if self.tbIcon:
             self.tbIcon.set_status(self.timer_status)
@@ -308,6 +335,7 @@ class MainFrame(wx.Frame):
         self.timer.start()
         if self.notify_controller:
             self.notify_controller.show_action('Started!')
+        self.stopBut.SetFocus()
         self.Refresh()
 
     def OnPause(self, event):
@@ -321,6 +349,7 @@ class MainFrame(wx.Frame):
         self.queue_clean()
         if self.notify_controller:
             self.notify_controller.show_action('Stopped')
+        self.startBut.SetFocus()
         self.Refresh()
 
     def Minimize(self, event):
