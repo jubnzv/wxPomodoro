@@ -4,7 +4,7 @@ Simple [pomodoro](https://en.wikipedia.org/wiki/Pomodoro_Technique) timer based 
 
 ![screenshot](screenshot.png "Main window")
 
-### Features:
+### Features
 * Simple GUI to configure timer options
 * Desktop notifications via `libnotify`
 * Tray icon with current timer status
