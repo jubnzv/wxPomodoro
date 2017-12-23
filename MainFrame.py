@@ -325,8 +325,16 @@ class MainFrame(wx.Frame):
 
     def Minimize(self, event):
         """Minimize to tray"""
-        if self.IsIconized():
-            self.Hide()
+        self.Hide()
+
+    def Exit(self):
+        """Close this frame
+
+        It should be called from external, if we bind Minimize on EVT_CLOSE
+        """
+        self._cleanIcon()
+        self.Destroy()
+        self.Close()
 
     def OnClose(self, event):
         if event.CanVeto() and self.timer_status == PomodoroTimer.TIMER_STATUS['T_RUN']:

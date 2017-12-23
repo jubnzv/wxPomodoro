@@ -1156,24 +1156,19 @@ class TimerTaskBarIcon(wx.adv.TaskBarIcon):
         """Popup menu for EVT_RIGHT_DOWN event"""
         menu = wx.Menu()
 
-        menu.Append(self.TBMENU_SHOW, 'Show')
-        menu.AppendSeparator()
-        menu.Append(self.TBMENU_TIMER_RUN, 'Run')
-        menu.Append(self.TBMENU_TIMER_PAUSE, 'Pause')
-        menu.Append(self.TBMENU_TIMER_STOP, 'Stop')
-        menu.AppendSeparator()
         menu.Append(self.TBMENU_CLOSE, 'Exit')
 
         return menu
 
     def OnTaskBarLeftClick(self, event):
-        """Create right-click menu"""
+        """Toggle iconized mode for parent frame"""
         self.frame.Show()
         self.frame.Restore()
 
+
     def OnTaskBarClose(self, event):
         """Destroy parent frame and taskbar itself"""
-        self.frame.Close()
+        self.frame.Exit()
 
     def OnTaskBarActivate(self, event):
         pass

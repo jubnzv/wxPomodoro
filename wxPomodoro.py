@@ -37,8 +37,6 @@ def get_args():
                         dest='show_icon', help='disable tray icon')
     parser.add_argument('--no-notify', action='store_false',
                         dest='show_notify', help='mute desktop notifications')
-    parser.add_argument('-c', '--config', action='store',
-                        dest='config_path', help='configuration file location')
     parser.add_argument('-v', '--version', action='version',
                         version=APP_VERSION)
 
@@ -62,4 +60,3 @@ def start_app(cl_args):
 if __name__ == '__main__':
     args = get_args()
     start_app(cl_args=args)
-
