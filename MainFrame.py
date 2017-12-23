@@ -50,27 +50,36 @@ class MainFrame(wx.Frame):
 
         self.app_name, self.app_version = app_creds
 
-        self.notify_controller = None  # Notications controller
+        # Timer initialization
         self.timer = None  # Current timer
         self.timers_queue = deque()
         self.timers_count = 0
-        self.p_dur = 0
-        self.sb_dur = 0
-        self.lb_dur = 0
+        self.p_dur = self.sb_dur = self.lb_dur = 0
         self.timer_status = None
+
+        # Status & notifications elements
         self.current_task = 'Waiting'
+        self.notify_controller = None
+        self.tbIcon = None
 
         # Intiailize the UI
         self.mainPanel = wx.Panel(self)
         self.mainSz = wx.BoxSizer(wx.VERTICAL)
+
         self._initStatusPanel()
         self._initTimerPanel()
         self._initControlButtons()
+        self._setTitle()
+
         if cl_args['show_notify']:
             self._initNotify()
+
         if cl_args['show_icon']:
             self._initTrayIcon()
-        self._setTitle()
+            self.Bind(wx.EVT_CLOSE, self.Minimize)
+        else:
+            self.Bind(wx.EVT_CLOSE, self.OnClose)
+
         self.mainSz.Fit(self)
         self.mainPanel.SetSizer(self.mainSz)
 
@@ -164,13 +173,17 @@ class MainFrame(wx.Frame):
     def _initTrayIcon(self):
         """Initialize tray icon and minimize-restore routines"""
         self.tbIcon = TimerTaskBarIcon(self)
-
-        self.Bind(wx.EVT_ICONIZE, self.OnMinimize)
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.Bind(wx.EVT_ICONIZE, self.Minimize)
 
     def _initNotify(self):
         """Initialize notifications"""
         self.notify_controller = PomodoroNotify(app_name=self.app_name)
+
+    def _cleanIcon(self):
+        """Remove taskbar icon"""
+        if self.tbIcon:
+            self.tbIcon.RemoveIcon()
+            self.tbIcon.Destroy()
 
     def queue_init(self):
         """Setup the PomodoroTimer queue
@@ -205,6 +218,11 @@ class MainFrame(wx.Frame):
         self._setCurrentStatus()
         self._setCurrentTask()
 
+        # Update app icon
+        if self.tbIcon:
+            self.tbIcon.set_status(self.timer_status)
+
+        # Update control buttons according current timer status
         if self.timer_status == PomodoroTimer.TIMER_STATUS['T_RUN']:
             self.startBut.Disable()
             self.pauseBut.Enable()
@@ -234,6 +252,8 @@ class MainFrame(wx.Frame):
         """Set current status in UI"""
         if not self.timer:
             self.timer_status = PomodoroTimer.TIMER_STATUS['T_STOP']
+        else:
+            self.timer_status = self.timer.get_status()
         self.currentStatus.SetValue(self.timer_status)
 
     def _setCurrentTask(self):
@@ -279,7 +299,7 @@ class MainFrame(wx.Frame):
         self.timer_status = self.timer.get_status()
         if self.timer_status == PomodoroTimer.TIMER_STATUS['T_FINISH'] and self.timers_queue:
             self.queue_next()
-        wx.CallAfter(self.Refresh)
+        self.Refresh()
 
     def OnStart(self, event):
         self._getUserInput()
@@ -288,27 +308,33 @@ class MainFrame(wx.Frame):
         self.timer.start()
         if self.notify_controller:
             self.notify_controller.show_action('Started!')
-        wx.CallAfter(self.Refresh)
+        self.Refresh()
 
     def OnPause(self, event):
         self.timer.pause()
         if self.notify_controller:
             self.notify_controller.show_action('Paused')
-        wx.CallAfter(self.Refresh)
+        self.Refresh()
 
     def OnStop(self, event):
         self.timer.stop()
         self.queue_clean()
         if self.notify_controller:
             self.notify_controller.show_action('Stopped')
-        wx.CallAfter(self.Refresh)
+        self.Refresh()
 
-    def OnMinimize(self, event):
+    def Minimize(self, event):
         """Minimize to tray"""
         if self.IsIconized():
             self.Hide()
 
     def OnClose(self, event):
-        self.tbIcon.RemoveIcon()
-        self.tbIcon.Destroy()
+        if event.CanVeto() and self.timer_status == PomodoroTimer.TIMER_STATUS['T_RUN']:
+            if wx.MessageBox('Timer already started. Exit now?',
+                             'Please confirm',
+                             wx.ICON_QUESTION | wx.YES_NO) != wx.YES:
+                event.Veto()
+                return
+
+        self._cleanIcon()
         self.Destroy()

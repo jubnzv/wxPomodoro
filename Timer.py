@@ -73,20 +73,20 @@ class PomodoroTimer(wx.Timer):
 
     def stop(self):
         """Breaks existing timing data and stops the timer"""
+        self.status = self.TIMER_STATUS['T_STOP']
         self.Stop()
         self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
-        self.status = self.TIMER_STATUS['T_STOP']
 
     def pause(self):
         """Pause the timer"""
-        self.Stop()
         self.status = self.TIMER_STATUS['T_PAUSE']
+        self.Stop()
 
     def finish(self):
         """Represent 'Finish' state: timer expires successfully"""
+        self.status = self.TIMER_STATUS['T_FINISH']
         self.Stop()
         self.t_remain = self.t_start = self.t_stop = self.t_tick = datetime.timedelta()
-        self.status = self.TIMER_STATUS['T_FINISH']
 
     def get_remain(self):
         """Returns remain time in timedelta"""
